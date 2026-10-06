@@ -1,0 +1,2 @@
+DEBUG_MODE = True
+UVI_DEBUG = False
