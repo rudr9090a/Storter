@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 import logging
 import config
 from datetime import datetime
-
+from data.models import *
 # --- Setting up loggers ---
 
 now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -30,11 +30,14 @@ storterLogger.addHandler(file_handler)
 # ----------------------------
 
 app = FastAPI()
-app.mount("/", StaticFiles(directory="web_assets", html=True), name="web_assets")
+app.mount("/files", StaticFiles(directory="web_assets", html=True), name="web_assets")
 
-storterLogger.debug("FastAPI initialized")
-
+@app.post("/api/auth/login")
+def login(creds: Login):
+    storterLogger.debug(f"Received login request for {creds.username}")
 if __name__ == "__main__":
+    storterLogger.debug("FastAPI initialized")
+    storterLogger.info("Visit the website on http://127.0.0.1:5000/files/login.html ")
     uvicorn.run(
         "main:app",
         port=5000,
