@@ -34,4 +34,4 @@ This project serves as the backend for the music server, built with FastAPI. It 
 
 To make the server accessible and convenient to use, our team is also developing a dedicated web application that serves as the primary interface for interacting with the music server under the name Minetify. An Android application is also planned for the future, extending access to mobile devices.
 
-Check out Mientify [here](https://github.com/namanstudiox/Minetify)
+Check out Minetify [here](https://github.com/namanstudiox/Minetify)
