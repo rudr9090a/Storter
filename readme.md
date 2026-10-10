@@ -28,3 +28,10 @@ There is a lot to come yet, but here are some projected features, that will be i
 
 - Github - [@rudr9090a](https://www.github.com/rudr9090a)
 - Discord - rudraksh.py
+## About the repo
+
+This project serves as the backend for the music server, built with FastAPI. It handles the required HTTP endpoints and API methods that power the music application, including communication between the client and the server. It focuses purely on backend functionality and does not provide its own user interface (UI) or user experience (UX).
+
+To make the server accessible and convenient to use, our team is also developing a dedicated web application that serves as the primary interface for interacting with the music server under the name Minetify. An Android application is also planned for the future, extending access to mobile devices.
+
+Check out Mientify [here](https://github.com/namanstudiox/Minetify)

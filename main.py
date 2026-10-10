@@ -1,45 +1,34 @@
 import uvicorn
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-import logging
+from fastapi import FastAPI, HTTPException
+from pathlib import Path
 import config
-from datetime import datetime
 from data.models import *
-# --- Setting up loggers ---
+from data.database import init as database_init,admin_login
+from data.logger import logger_init
+BASE_DIR = Path(__file__).resolve().parent
 
-now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+storterLogger = logger_init()
+storterLogger.debug("Logger initialized")
 
-storterLogger = logging.getLogger("storter")
-storterLogger.setLevel(
-    logging.DEBUG if config.DEBUG_MODE else logging.INFO
-)
-
-console_handler = logging.StreamHandler()
-file_handler = logging.FileHandler(f"logs/{now}.log")
-
-log_formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-
-console_handler.setFormatter(log_formatter)
-file_handler.setFormatter(log_formatter)
-
-storterLogger.addHandler(console_handler)
-storterLogger.addHandler(file_handler)
-
-# ----------------------------
-
+database_init(storterLogger)
 app = FastAPI()
-app.mount("/files", StaticFiles(directory="web_assets", html=True), name="web_assets")
-
 @app.post("/api/auth/login")
 def login(creds: Login):
-    storterLogger.debug(f"Received login request for {creds.username}")
+    if creds.username == "admin":
+        storterLogger.debug("Admin login detected")
+        success, defaults = admin_login(creds.username, creds.password)
+        if not success:
+            raise HTTPException(
+                status_code=401,
+                detail="Incorrect username or password",
+            )
+
+
 if __name__ == "__main__":
     storterLogger.debug("FastAPI initialized")
-    storterLogger.info("Visit the website on http://127.0.0.1:5000/files/login.html ")
+    storterLogger.info(f"Visit the website on http://127.0.0.1:{config.PORT}/files/login.html ")
     uvicorn.run(
-        "main:app",
-        port=5000,
+        app,
+        port=config.PORT,
         log_level="debug" if config.UVI_DEBUG else "critical"
     )

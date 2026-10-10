@@ -1,2 +1,3 @@
 DEBUG_MODE = True
 UVI_DEBUG = True
+PORT = 5050
