@@ -8,3 +8,7 @@ class PasswordChangeModel(BaseModel):
     username: str
     oldpassword: str
     newpassword: str
+
+class LikeSongModel(BaseModel):
+    username: str
+    songid: str
