@@ -4,7 +4,7 @@ class LoginModel(BaseModel):
     username: str
     password: str
 
-class PasswordChange(BaseModel):
+class PasswordChangeModel(BaseModel):
     username: str
     oldpassword: str
     newpassword: str

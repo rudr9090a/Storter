@@ -1,5 +1,5 @@
 import config
-from data.models import LoginModel, PasswordChange
+from data.models import LoginModel, PasswordChangeModel
 from data.database_handlers import admin_login, SessionHandler, UserAccountsManager
 def login_manager(creds: LoginModel,
                   session_handler: SessionHandler,

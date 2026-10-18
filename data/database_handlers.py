@@ -5,7 +5,7 @@ from time import time
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError, VerificationError
 import config
-from data.models import PasswordChange
+from data.models import PasswordChangeModel
 
 
 def init(logger):
@@ -98,8 +98,8 @@ class UserAccountsManager:
         session_key = session_key + "=" + username
         return status, session_key, reason
 
-    def change_password(self, creds : PasswordChange):
-        old_pass_valid = self.verify(creds.username,creds.oldpassword)
+    def change_password(self, creds : PasswordChangeModel):
+        old_pass_valid, _  = self.verify(creds.username,creds.oldpassword)
         if not old_pass_valid:
             return False, "Old password invalid"
         with open("data/accounts.json","r") as f:
@@ -110,8 +110,7 @@ class UserAccountsManager:
             json.dump(data, f, indent=4)
         return True, "Password changed successfully"
 
-    def logout(self, session_data, sh : SessionHandler):
-        session_id, username = session_data.split("=")
+    def logout(self, session_id, username, sh : SessionHandler):
         validity, _ = sh.check_session(username, session_id)
         if not validity:
             return validity, _
