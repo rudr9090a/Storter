@@ -1,8 +1,12 @@
 import json
 import secrets
+from math import floor
+from time import time
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError, VerificationError
 import config
+from data.models import PasswordChange
+
 
 def init(logger):
     try:
@@ -29,7 +33,7 @@ class SessionHandler():
         session_key = secrets.token_urlsafe(32)
         with open("data/sessions.json", "r") as f:
             data = json.load(f)
-        data[username] = session_key
+        data[username] = [session_key,floor(time())]
         with open("data/sessions.json", "w") as f:
             json.dump(data, f, indent=4)
         return session_key
@@ -37,16 +41,16 @@ class SessionHandler():
         with open("data/sessions.json", "r") as f:
             data = json.load(f)
         stored_key = data.get(username)
-        return stored_key is not None and secrets.compare_digest(
-            stored_key, key
-        )
+        if stored_key is None:
+            return False, "Session key is either invalid or expired"
+        if key != stored_key[0]:
+            return False, "Session key is invalid"
+        return True, "Session key is valid"
     def delete_session(self, username):
         with open("data/sessions.json", "r") as f:
             data = json.load(f)
-
         if username in data:
             del data[username]
-
             with open("data/sessions.json", "w") as f:
                 json.dump(data, f, indent=4)
 
@@ -73,7 +77,7 @@ class UserAccountsManager:
         try:
             PasswordHasher().verify(password_hashed, password)
         except (VerifyMismatchError, VerificationError, ValueError, KeyError):
-            return False, "Couldn't verify password, hash was tampered, possibly"
+            return False, "Couldn't verify password, password was incorrect or hash was tampered."
         return True, None
     def create_new_user(self,username,password):
         with open("data/accounts.json","r") as f:
@@ -86,17 +90,36 @@ class UserAccountsManager:
             json.dump(accounts, f, indent=4)
         return True, "Account successfully created"
 
+    def user_login(self, username, password, session_handler : SessionHandler):
+        status, reason = self.verify(username, password)
+        if not status:
+            return status, None , reason
+        session_key = session_handler.create_new_session(username)
+        session_key = session_key + "=" + username
+        return status, session_key, reason
 
-def user_login(username, password, session_handler : SessionHandler, acc_manager : UserAccountsManager):
-    status, reason = acc_manager.verify(username, password)
-    if not status:
-        return status, None , reason
-    session_key = session_handler.create_new_session(username)
-    session_key = session_key + "=" + username
-    return status, session_key, reason
+    def change_password(self, creds : PasswordChange):
+        old_pass_valid = self.verify(creds.username,creds.oldpassword)
+        if not old_pass_valid:
+            return False, "Old password invalid"
+        with open("data/accounts.json","r") as f:
+            data = json.load(f)
+        h = PasswordHasher().hash(creds.newpassword)
+        data[creds.username] = h
+        with open("data/accounts.json","w") as f:
+            json.dump(data, f, indent=4)
+        return True, "Password changed successfully"
+
+    def logout(self, session_data, sh : SessionHandler):
+        session_id, username = session_data.split("=")
+        validity, _ = sh.check_session(username, session_id)
+        if not validity:
+            return validity, _
+        sh.delete_session(username)
+        return True, "Logout successful"
+
 
 def admin_login(username, password, session_handler : SessionHandler):
-
     ph = PasswordHasher()
     with open("data/root_acc.json", "r") as f:
         data = json.load(f)

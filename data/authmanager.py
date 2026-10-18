@@ -1,6 +1,6 @@
 import config
-from data.models import LoginModel
-from data.database import admin_login, user_login, SessionHandler, UserAccountsManager
+from data.models import LoginModel, PasswordChange
+from data.database_handlers import admin_login, SessionHandler, UserAccountsManager
 def login_manager(creds: LoginModel,
                   session_handler: SessionHandler,
                   acc_manager : UserAccountsManager
@@ -10,7 +10,7 @@ def login_manager(creds: LoginModel,
     if username == config.DEFAULT_ADMIN_USERNAME:
         return admin_login(username, password, session_handler)
     else:
-        return user_login(username, password, session_handler, acc_manager)
+        return acc_manager.user_login(username, password, session_handler)
 
 
 def new_user_account(creds : LoginModel,
