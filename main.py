@@ -7,7 +7,7 @@ from data.models import LoginModel, PasswordChangeModel, LikeSongModel
 from data.database_handlers import init as database_init, SessionHandler, UserAccountsManager
 from data.logger import logger_init
 from data.authmanager import login_manager, new_user_account
-from data.musicmanager import list_songs, MusicManager
+from data.musicmanager import list_songs, MusicManager, validate_music_input
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -18,6 +18,7 @@ uam = UserAccountsManager(storterLogger)
 mm = MusicManager(storterLogger)
 database_init(storterLogger)
 app = FastAPI()
+
 
 
 @app.post("/api/auth/login")
@@ -127,6 +128,7 @@ async def stream_audio(song_id: str,request: Request):
     )
 @app.post("/api/{username}/like_song")
 def like_song(username : str,model : LikeSongModel, request : Request):
+    validate_music_input(username, model)
     session = request.cookies.get("session")
     if session is None or username is None:
         raise HTTPException(
@@ -149,6 +151,20 @@ def like_song(username : str,model : LikeSongModel, request : Request):
     return {
         "result" : "Request successful"
     }
+
+@app.post("/api/{username}/unlike_song")
+def unlike_song(username: str, model: LikeSongModel, request: Request):
+    validate_music_input(username, model)
+    session = request.cookies.get("session")
+    if session is None:
+        raise HTTPException(status_code=400, detail="Invalid or malformed cookies.")
+    session_validity, _ = sh.check_session(username, session)
+    if not session_validity:
+        raise HTTPException(status_code=401, detail="Invalid session id.")
+    if model.songid + ".mp3" not in list_songs():
+        raise HTTPException(status_code=404, detail="Song does not exist.")
+    mm.unlike_song(username, model.songid)
+    return {"result": "Request successful"}
 @app.get("/api/{username}/get_liked_songs")
 def get_liked_songs(username : str,request : Request):
     session = request.cookies.get("session")

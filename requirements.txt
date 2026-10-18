@@ -1,3 +1,4 @@
 fastapi
 uvicorn
 argon2-cffi
+starlette

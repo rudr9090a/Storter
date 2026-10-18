@@ -1,12 +1,18 @@
 import json
 import os
+import re
+
+from fastapi import HTTPException
 import config
+from data.models import LikeSongModel
+
 '''
 Supported files types-
 -> mp3
+Further supported filetypes may include-
 -> wav
-
-I will add more later
+-> ogg
+-> flac
 '''
 music_dir = config.DEFAULT_MUSIC_DIR
 def list_songs():
@@ -47,12 +53,38 @@ class MusicManager:
         with open("data/user_data.json","r") as f:
             data = json.load(f)
         user_data = data.get(username)
-        if user_data in None:
+        if user_data is None:
             return False, "The user does not exist."
         return True, user_data["liked_songs"]
     def like_song(self,username,songid):
         with open("data/user_data.json","r") as f:
             data = json.load(f)
+        if songid in data[username]['liked_songs']:
+            raise HTTPException(
+                status_code=409,
+                detail="The song is already in the liked list"
+            )
         data[username]['liked_songs'].append(songid)
         with open("data/user_data.json","w") as f:
             json.dump(data,f,indent=4)
+    def unlike_song(self, username, songid):
+        with open("data/user_data.json","r") as f:
+            data = json.load(f)
+        if songid not in data[username]['liked_songs']:
+            raise HTTPException(
+                status_code=404,
+                detail="The song is not present in the liked song list in the first place"
+            )
+        data[username]['liked_songs'].remove(songid)
+        with open("data/user_data.json","w") as f:
+            json.dump(data,f,indent=4)
+
+
+SAFE_USERNAME = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+SAFE_SONG_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+
+def validate_music_input(username: str, model: LikeSongModel):
+    if not SAFE_USERNAME.fullmatch(username) or username != model.username:
+        raise HTTPException(status_code=400, detail="Invalid username.")
+    if not SAFE_SONG_ID.fullmatch(model.songid):
+        raise HTTPException(status_code=400, detail="Invalid song id.")
