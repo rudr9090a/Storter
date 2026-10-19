@@ -12,3 +12,6 @@ class PasswordChangeModel(BaseModel):
 class LikeSongModel(BaseModel):
     username: str
     songid: str
+
+class AlbumModel(BaseModel):
+    url: str

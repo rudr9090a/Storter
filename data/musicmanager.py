@@ -1,10 +1,10 @@
 import json
 import os
 import re
-
 from fastapi import HTTPException
 import config
 from data.models import LikeSongModel
+from data.dlp_manager import download_album
 
 '''
 Supported files types-
@@ -21,7 +21,7 @@ def list_songs():
         if file.endswith(".mp3") or file.endswith(".wav"):
             songs.append(file)
     return songs
-class MusicManager:
+class UserMusicProfileManager:
     def __init__(self,logger):
         self.songs = list_songs()
         self.logger = logger
@@ -37,6 +37,7 @@ class MusicManager:
                 self.init_user_data(user)
             self.logger.debug("User data file not found, creating default")
     def init_user_data(self,username):
+        self.songs = list_songs()
         with open("data/user_data.json","r") as f:
             data = json.load(f)
         data[username] = {
@@ -50,6 +51,7 @@ class MusicManager:
         with open("data/user_data.json","w") as g:
             json.dump(data,g,indent=4)
     def get_liked_songs(self,username):
+        self.songs = list_songs()
         with open("data/user_data.json","r") as f:
             data = json.load(f)
         user_data = data.get(username)
@@ -57,6 +59,7 @@ class MusicManager:
             return False, "The user does not exist."
         return True, user_data["liked_songs"]
     def like_song(self,username,songid):
+        self.songs = list_songs()
         with open("data/user_data.json","r") as f:
             data = json.load(f)
         if songid in data[username]['liked_songs']:
@@ -68,6 +71,7 @@ class MusicManager:
         with open("data/user_data.json","w") as f:
             json.dump(data,f,indent=4)
     def unlike_song(self, username, songid):
+        self.songs = list_songs()
         with open("data/user_data.json","r") as f:
             data = json.load(f)
         if songid not in data[username]['liked_songs']:
@@ -78,8 +82,35 @@ class MusicManager:
         data[username]['liked_songs'].remove(songid)
         with open("data/user_data.json","w") as f:
             json.dump(data,f,indent=4)
-
-
+class MusicManager:
+    def __init__(self,logger):
+        self.logger = logger
+        self.songs = list_songs()
+        try:
+            f = open(config.DEFAULT_MUSIC_DIR+"/dictionary.json","r")
+        except FileNotFoundError:
+            f = open(config.DEFAULT_MUSIC_DIR+"/dictionary.json","w")
+            json.dump({},f,indent=4)
+            self.logger.debug("Creating default dictionary file for song info, previous file not found")
+    def register_song(self, filename, data : dict):
+        with open(config.DEFAULT_MUSIC_DIR+"/dictionary.json","r") as f:
+            existing_data = json.load(f)
+        if filename in existing_data:
+            return
+        existing_data[filename] = data
+        with open(config.DEFAULT_MUSIC_DIR+"/dictionary.json","w") as f:
+            json.dump(existing_data,f,indent=4)
+    def get_song_data(self, filename):
+        with open(config.DEFAULT_MUSIC_DIR + "/dictionary.json", "r") as f:
+            existing_data = json.load(f)
+        try:
+            return existing_data[filename]
+        except KeyError:
+            return {"detail":"unfinished downloaded song"}
+    async def download_album(self,url):
+        data = await download_album(url)
+        for filename in data:
+            self.register_song(filename,data[filename])
 SAFE_USERNAME = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 SAFE_SONG_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 
